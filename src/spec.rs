@@ -55,6 +55,7 @@ pub struct Param {
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
+    #[serde(default)]
     pub required: bool,
     pub schema: Schema,
 }
@@ -78,7 +79,15 @@ pub enum Schema {
     Ref(Reference),
     OneOf(OneOf),
     AllOf(AllOf),
+    Not(NotSchema),
     Primitive(Primitive),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct NotSchema {
+    // Field not handled for now - just used for validation constraints
+    pub not: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -112,6 +121,9 @@ pub struct AllOf {
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    // Field not used for code generation, just for spec compatibility
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
     pub all_of: Vec<Schema>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_properties: Option<bool>,
@@ -135,6 +147,9 @@ pub struct ArrayPrimitive {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     pub items: Box<Schema>,
+    // Field not handled for now
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -169,7 +184,11 @@ pub struct ObjectPrimitive {
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
+    // Field not used for code generation, just for spec compatibility
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     pub properties: IndexMap<String, Schema>,
+    #[serde(default)]
     pub required: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_properties: Option<bool>,
@@ -188,6 +207,9 @@ pub struct StringPrimitive {
     pub comment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    // Field not used for code generation, just for spec compatibility
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#enum: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -216,6 +238,7 @@ impl Schema {
             Self::Ref(schema) => schema.title.as_ref(),
             Self::OneOf(schema) => schema.title.as_ref(),
             Self::AllOf(schema) => schema.title.as_ref(),
+            Self::Not(_) => None,
             Self::Primitive(schema) => schema.title(),
         }
     }
@@ -225,6 +248,7 @@ impl Schema {
             Self::Ref(schema) => schema.description.as_ref(),
             Self::OneOf(schema) => schema.description.as_ref(),
             Self::AllOf(schema) => schema.description.as_ref(),
+            Self::Not(_) => None,
             Self::Primitive(schema) => schema.description(),
         }
     }
@@ -234,6 +258,7 @@ impl Schema {
             Self::Ref(_) => None,
             Self::OneOf(_) => None,
             Self::AllOf(_) => None,
+            Self::Not(_) => None,
             Self::Primitive(schema) => schema.summary(),
         }
     }

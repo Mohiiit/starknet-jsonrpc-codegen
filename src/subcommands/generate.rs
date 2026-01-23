@@ -472,7 +472,20 @@ impl RustStruct {
 
         for (ind_field, field) in self.fields.iter().enumerate() {
             if field.optional {
-                if field.name.len() > 15 {
+                let is_string_type = field.type_name == "String";
+                if is_string_type && !is_ref_type {
+                    // For Option<String> in non-ref types, use as_deref() to get Option<&str>
+                    println!(
+                        "                {}: self.{}.as_deref().map(|f| Field{} {{ value: f }}),",
+                        field.name, field.name, ind_field,
+                    );
+                } else if is_string_type && is_ref_type {
+                    // For ref types, Optional String is Option<&str>, just use .map()
+                    println!(
+                        "                {}: self.{}.map(|f| Field{} {{ value: f }}),",
+                        field.name, field.name, ind_field,
+                    );
+                } else if field.name.len() > 15 {
                     println!("                {}: self", field.name,);
                     println!("                    .{}", field.name);
                     println!("                    .as_ref()");
@@ -1139,10 +1152,15 @@ impl RustField {
             },
             if is_ref {
                 if type_name == "String" {
-                    String::from("&'a str")
+                    if self.optional && !is_wrapped_field {
+                        String::from("Option<&'a str>")
+                    } else {
+                        String::from("&'a str")
+                    }
                 } else if type_name.starts_with("Vec<") {
                     if self.optional && !is_wrapped_field {
-                        format!("Option<&'a [{}]>", &type_name[4..(type_name.len() - 1)])
+                        // Use &'a Option<Vec<T>> instead of Option<&'a [T]> for serde_with compatibility
+                        format!("&'a Option<{type_name}>")
                     } else {
                         format!("&'a [{}]", &type_name[4..(type_name.len() - 1)])
                     }
@@ -1286,6 +1304,9 @@ fn resolve_types(
                                 ),
                                 Schema::AllOf(_) => anyhow::bail!(
                                     "Anonymous allOf types should not be used for error data"
+                                ),
+                                Schema::Not(_) => anyhow::bail!(
+                                    "Not schema should not be used for error data"
                                 ),
                             },
                             None => None,
@@ -1734,6 +1755,9 @@ fn get_rust_type_for_field(schema: &Schema) -> Result<RustFieldType> {
         }
         Schema::AllOf(_) => {
             anyhow::bail!("Anonymous allOf types should not be used for properties");
+        }
+        Schema::Not(_) => {
+            anyhow::bail!("Not schema should not be used for properties");
         }
         Schema::Primitive(value) => match value {
             Primitive::Array(value) => {
