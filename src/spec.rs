@@ -79,15 +79,7 @@ pub enum Schema {
     Ref(Reference),
     OneOf(OneOf),
     AllOf(AllOf),
-    Not(NotSchema),
     Primitive(Primitive),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct NotSchema {
-    // Field not handled for now - just used for validation constraints
-    pub not: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -238,7 +230,6 @@ impl Schema {
             Self::Ref(schema) => schema.title.as_ref(),
             Self::OneOf(schema) => schema.title.as_ref(),
             Self::AllOf(schema) => schema.title.as_ref(),
-            Self::Not(_) => None,
             Self::Primitive(schema) => schema.title(),
         }
     }
@@ -248,7 +239,6 @@ impl Schema {
             Self::Ref(schema) => schema.description.as_ref(),
             Self::OneOf(schema) => schema.description.as_ref(),
             Self::AllOf(schema) => schema.description.as_ref(),
-            Self::Not(_) => None,
             Self::Primitive(schema) => schema.description(),
         }
     }
@@ -258,7 +248,6 @@ impl Schema {
             Self::Ref(_) => None,
             Self::OneOf(_) => None,
             Self::AllOf(_) => None,
-            Self::Not(_) => None,
             Self::Primitive(schema) => schema.summary(),
         }
     }

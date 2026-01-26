@@ -1305,9 +1305,6 @@ fn resolve_types(
                                 Schema::AllOf(_) => anyhow::bail!(
                                     "Anonymous allOf types should not be used for error data"
                                 ),
-                                Schema::Not(_) => anyhow::bail!(
-                                    "Not schema should not be used for error data"
-                                ),
                             },
                             None => None,
                         },
@@ -1755,9 +1752,6 @@ fn get_rust_type_for_field(schema: &Schema) -> Result<RustFieldType> {
         }
         Schema::AllOf(_) => {
             anyhow::bail!("Anonymous allOf types should not be used for properties");
-        }
-        Schema::Not(_) => {
-            anyhow::bail!("Not schema should not be used for properties");
         }
         Schema::Primitive(value) => match value {
             Primitive::Array(value) => {
